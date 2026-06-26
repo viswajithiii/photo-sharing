@@ -1,0 +1,521 @@
+:root {
+  --bg-color: #0d0f12;
+  --surface-color: #1a1e24;
+  --surface-hover: #252b33;
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --accent-color: #6366f1;
+  --accent-hover: #4f46e5;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --glass-bg: rgba(26, 30, 36, 0.75);
+  --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-story: 'Merriweather', Georgia, serif;
+  --radius-lg: 16px;
+  --radius-md: 10px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ================= Auth Modal ================= */
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at center, #1e2430 0%, #0d0f12 100%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.auth-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.auth-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  padding: 40px;
+  border-radius: var(--radius-lg);
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  animation: cardFloat 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cardFloat {
+  0% { transform: translateY(20px) scale(0.95); opacity: 0; }
+  10% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.auth-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.auth-card h2 {
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+}
+
+.auth-card p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  margin-bottom: 24px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.auth-form input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color);
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  color: #fff;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.auth-form input:focus {
+  border-color: var(--accent-color);
+}
+
+.btn-primary {
+  background: var(--accent-color);
+  color: #fff;
+  border: none;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+}
+
+.auth-error {
+  color: #f87171;
+  font-size: 0.85rem;
+  margin-top: 16px;
+  display: none;
+}
+
+/* ================= Header ================= */
+.app-header {
+  padding: 40px 24px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header-content {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 24px;
+  gap: 20px;
+}
+
+.header-titles h1 {
+  font-family: var(--font-heading);
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.header-titles p {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  margin-top: 4px;
+}
+
+.btn-secondary {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: var(--surface-hover);
+}
+
+/* ================= Grid Feed ================= */
+.feed-grid {
+  max-width: 1400px;
+  margin: 32px auto 80px;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+}
+
+/* Headings span full width */
+.feed-heading {
+  grid-column: 1 / -1;
+  margin-top: 36px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.feed-heading h2 {
+  font-family: var(--font-heading);
+  font-size: 1.85rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.feed-heading span {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+/* Narratives styled as clean subheadings spanning full width */
+.feed-narrative {
+  grid-column: 1 / -1;
+  margin: 16px 0 8px;
+  padding: 8px 4px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.feed-narrative:hover {
+  opacity: 0.85;
+}
+
+.feed-narrative h3 {
+  font-family: var(--font-heading);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.feed-narrative p {
+  font-family: var(--font-story);
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: #d1d5db;
+  max-width: 900px;
+}
+
+/* Photo Tile */
+.feed-photo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+  group: true;
+}
+
+.photo-thumb-wrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+}
+
+.skeleton-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, #1a1e24 0%, #262c36 50%, #1a1e24 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  10% { background-position: 200% 0; }
+}
+
+.photo-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.photo-thumb.loaded {
+  opacity: 1;
+}
+
+.feed-photo-card:hover .photo-thumb {
+  transform: scale(1.04);
+}
+
+.photo-caption {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  padding: 0 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ================= Lightbox ================= */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.lightbox.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.94);
+  backdrop-filter: blur(15px);
+}
+
+/* Instagram Stories Progress Bar */
+.lightbox-progress {
+  position: absolute;
+  top: 12px;
+  left: 16px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  gap: 6px;
+  height: 4px;
+}
+
+.progress-segment {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.progress-segment:hover {
+  transform: scaleY(1.5);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.progress-fill {
+  width: 0%;
+  height: 100%;
+  background: #fff;
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.progress-segment.completed .progress-fill {
+  width: 100%;
+}
+
+.progress-segment.active .progress-fill {
+  width: 100%;
+}
+
+.lightbox-stage {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 80px 32px;
+  touch-action: pan-y;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.lightbox-stage.slide-transition {
+  opacity: 0;
+  transform: scale(0.96) translateX(10px);
+}
+
+.lightbox-photo-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 16px;
+  max-height: 100%;
+}
+
+.lightbox-img-wrapper {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-full-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+  animation: slideFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideFadeIn {
+  0% { opacity: 0; transform: scale(0.97); }
+  10% { opacity: 1; transform: scale(1); }
+}
+
+.lightbox-story-card {
+  max-width: 720px;
+  background: transparent;
+  border: none;
+  padding: 40px 20px;
+  text-align: center;
+  font-family: var(--font-story);
+  font-size: 1.35rem;
+  line-height: 1.9;
+  color: #f3f4f6;
+  box-shadow: none;
+}
+
+.lightbox-story-card h3 {
+  font-family: var(--font-heading);
+  font-size: 2.2rem;
+  margin-bottom: 16px;
+  color: #fff;
+}
+
+.lightbox-story-card p {
+  font-size: 1.3rem;
+  color: #e5e7eb;
+}
+
+.lightbox-caption-block {
+  flex-shrink: 0;
+  max-width: 800px;
+  text-align: center;
+  font-size: 1.15rem;
+  color: #f3f4f6;
+  padding: 0 16px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
+}
+
+.lightbox-btn {
+  position: absolute;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.lightbox-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.05);
+}
+
+.lightbox-close {
+  top: 24px;
+  right: 24px;
+  font-size: 1.2rem;
+}
+
+.lightbox-nav.prev {
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.lightbox-nav.next {
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.lightbox-nav:hover {
+  transform: translateY(-50%) scale(1.08);
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .feed-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 0 16px;
+  }
+  .lightbox-stage {
+    padding: 60px 16px 90px;
+  }
+  .lightbox-nav {
+    display: none; /* Rely on swipe gestures on mobile */
+  }
+  .lightbox-story-card {
+    padding: 28px;
+    font-size: 1.1rem;
+  }
+}

@@ -1,0 +1,11 @@
+# Sensitive source files (never commit)
+photos/
+feed.yaml
+PASSWORD
+
+# OS & Python junk
+.DS_Store
+__pycache__/
+*.pyc
+.uv/
+.venv/

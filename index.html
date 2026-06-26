@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Memories & Adventures</title>
+  <meta name="description" content="A secure, private photo gallery collection.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Merriweather:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Password Unlock Modal -->
+  <div id="authOverlay" class="auth-overlay">
+    <div class="auth-card">
+      <div class="auth-icon">🔒</div>
+      <h2>Protected Collection</h2>
+      <p>Enter the shared password to decrypt and view this gallery.</p>
+      <form id="authForm" class="auth-form">
+        <input type="password" id="passwordInput" placeholder="Enter password..." autocomplete="current-password" autofocus required>
+        <button type="submit" id="unlockButton" class="btn-primary">Unlock Gallery</button>
+      </form>
+      <div id="authError" class="auth-error">Incorrect password. Please try again.</div>
+    </div>
+  </div>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="header-content">
+      <div class="header-titles">
+        <h1 id="galleryTitle">Photo Gallery</h1>
+        <p id="galleryDescription">Loading secure collection...</p>
+      </div>
+      <div class="header-actions">
+        <button id="lockBtn" class="btn-secondary" title="Lock and clear stored password">
+          <span>🔒 Lock</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Google Photos Grid Feed -->
+  <main id="feedContainer" class="feed-grid">
+    <!-- Items dynamically injected by app.js -->
+  </main>
+
+  <!-- Fullscreen Lightbox / Carousel -->
+  <div id="lightbox" class="lightbox" aria-modal="true" role="dialog">
+    <div class="lightbox-backdrop"></div>
+    <div id="lightboxProgress" class="lightbox-progress"></div>
+    
+    <button id="lightboxClose" class="lightbox-btn lightbox-close" aria-label="Close lightbox">✕</button>
+    
+    <button id="lightboxPrev" class="lightbox-btn lightbox-nav prev" aria-label="Previous photo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+    </button>
+    
+    <div id="lightboxStage" class="lightbox-stage">
+      <!-- Full image or story card rendered here -->
+    </div>
+
+    <button id="lightboxNext" class="lightbox-btn lightbox-nav next" aria-label="Next photo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+    </button>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
