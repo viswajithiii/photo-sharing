@@ -1,6 +1,10 @@
-# Sensitive source files (never commit)
+# Sensitive source files & generated album directories (never commit plaintext)
 photos/
 feed.yaml
+album*.yaml
+*-feed.yaml
+secret*.yaml
+private*.yaml
 PASSWORD
 
 # OS & Python junk

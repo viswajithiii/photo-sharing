@@ -84,6 +84,38 @@ def encrypt_payload(key, data_bytes):
     }
 
 
+def process_photo_asset(filename, asset_id, key):
+    raw_path = os.path.join(PHOTOS_DIR, filename)
+    if not os.path.exists(raw_path):
+        print(f"⚠️ Warning: Photo file not found: {raw_path}. Skipping.")
+        return False
+
+    print(f"  🖼️ Processing {filename} ({asset_id})...")
+    with Image.open(raw_path) as img:
+        img_rgb = img.convert("RGB")
+        thumb_bytes = compress_image_to_limit(img_rgb, 200 * 1024, max_dim=1000)
+        full_bytes = compress_image_to_limit(img_rgb, 2 * 1024 * 1024, max_dim=3000)
+
+    print(f"     Thumb: {len(thumb_bytes)/1024:.1f} KB | Full: {len(full_bytes)/1024:.1f} KB")
+
+    if key:
+        thumb_payload = encrypt_payload(key, thumb_bytes)
+        full_payload = encrypt_payload(key, full_bytes)
+    else:
+        thumb_payload = {"plaintext_b64": base64.b64encode(thumb_bytes).decode("utf-8")}
+        full_payload = {"plaintext_b64": base64.b64encode(full_bytes).decode("utf-8")}
+
+    thumb_payload["mime"] = "image/jpeg"
+    full_payload["mime"] = "image/jpeg"
+
+    with open(os.path.join(OUTPUT_DIR, f"{asset_id}_thumb.json"), "w", encoding="utf-8") as tf:
+        json.dump(thumb_payload, tf)
+    with open(os.path.join(OUTPUT_DIR, f"{asset_id}_full.json"), "w", encoding="utf-8") as ff:
+        json.dump(full_payload, ff)
+
+    return True
+
+
 def main():
     print("🚀 Starting Encrypted Photo Gallery build...")
 
@@ -91,105 +123,118 @@ def main():
         print(f"❌ Error: {FEED_YAML_FILE} not found.")
         return
 
-    password = None
-    if os.path.exists(PASSWORD_FILE):
-        with open(PASSWORD_FILE, "r", encoding="utf-8") as pf:
-            password = pf.read().strip()
-
-    if not password:
-        print("⚠️ No password found in PASSWORD file. Building in PLAINTEXT mode.")
-        salt = None
-        key = None
-    else:
-        print("🔒 Password found. Deriving 256-bit AES key...")
-        salt = os.urandom(16)
-        key = derive_key(password, salt)
-
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    # Clean old encrypted photos
     for old_file in glob.glob(os.path.join(OUTPUT_DIR, "*.json")):
         os.remove(old_file)
 
     with open(FEED_YAML_FILE, "r", encoding="utf-8") as yf:
         feed_config = yaml.safe_load(yf) or {}
 
-    raw_feed = feed_config.get("feed", [])
-    processed_feed = []
-    photo_count = 0
-
-    for idx, item in enumerate(raw_feed):
-        item_type = item.get("type")
-        if item_type in ["heading", "narrative"]:
-            processed_feed.append({
-                "type": item_type,
-                "text": item.get("text", "").strip(),
-                "subtitle": item.get("subtitle", "").strip()
-            })
-        elif item_type == "photo":
-            photo_count += 1
-            photo_id = f"photo_{photo_count:03d}"
-            filename = item.get("file", "")
-            raw_path = os.path.join(PHOTOS_DIR, filename)
-
-            if not os.path.exists(raw_path):
-                print(f"⚠️ Warning: Photo file not found: {raw_path}. Skipping.")
-                continue
-
-            print(f"  🖼️ Processing {filename} ({photo_id})...")
-            with Image.open(raw_path) as img:
-                img_rgb = img.convert("RGB")
-                # Compress thumbnail <= 200KB (max dim 1000px)
-                thumb_bytes = compress_image_to_limit(img_rgb, 200 * 1024, max_dim=1000)
-                # Compress full <= 2MB (max dim 3000px)
-                full_bytes = compress_image_to_limit(img_rgb, 2 * 1024 * 1024, max_dim=3000)
-
-            print(f"     Thumb: {len(thumb_bytes)/1024:.1f} KB | Full: {len(full_bytes)/1024:.1f} KB")
-
-            if key:
-                thumb_payload = encrypt_payload(key, thumb_bytes)
-                full_payload = encrypt_payload(key, full_bytes)
-            else:
-                thumb_payload = {"plaintext_b64": base64.b64encode(thumb_bytes).decode("utf-8")}
-                full_payload = {"plaintext_b64": base64.b64encode(full_bytes).decode("utf-8")}
-
-            thumb_payload["mime"] = "image/jpeg"
-            full_payload["mime"] = "image/jpeg"
-
-            with open(os.path.join(OUTPUT_DIR, f"{photo_id}_thumb.json"), "w", encoding="utf-8") as tf:
-                json.dump(thumb_payload, tf)
-            with open(os.path.join(OUTPUT_DIR, f"{photo_id}_full.json"), "w", encoding="utf-8") as ff:
-                json.dump(full_payload, ff)
-
-            processed_feed.append({
-                "type": "photo",
-                "id": photo_id,
-                "caption": item.get("caption", "").strip(),
-                "alt": item.get("alt", "").strip()
-            })
-        else:
-            print(f"❓ Unknown item type: {item_type}")
-
-    gallery_manifest = {
-        "title": feed_config.get("title", "Encrypted Photo Gallery"),
-        "description": feed_config.get("description", ""),
-        "feed": processed_feed
+    showcase_meta = {
+        "title": feed_config.get("title", "Antigravity Secure Vault"),
+        "description": feed_config.get("description", "Zero-Knowledge Encrypted Sharing")
     }
 
-    manifest_json = json.dumps(gallery_manifest, ensure_ascii=False)
+    albums_map = {}
+    total_photos = 0
 
-    if key:
-        encrypted_manifest = encrypt_payload(key, manifest_json.encode("utf-8"))
-        output_data = {
-            "encrypted": True,
-            "salt": base64.b64encode(salt).decode("utf-8"),
-            "iv": encrypted_manifest["iv"],
-            "ciphertext": encrypted_manifest["ciphertext"]
+    root_index_path = os.path.join(SCRIPT_DIR, "index.html")
+    root_index_html = ""
+    if os.path.exists(root_index_path):
+        with open(root_index_path, "r", encoding="utf-8") as rf:
+            root_index_html = rf.read()
+
+    raw_albums = feed_config.get("albums", [])
+    for album_entry in raw_albums:
+        a_file = album_entry.get("file", "").strip() if isinstance(album_entry, dict) else str(album_entry).strip()
+        album_yaml_path = os.path.join(SCRIPT_DIR, a_file)
+        if not os.path.exists(album_yaml_path):
+            print(f"⚠️ Warning: Album file {a_file} not found. Skipping.")
+            continue
+
+        with open(album_yaml_path, "r", encoding="utf-8") as af:
+            a_data = yaml.safe_load(af) or {}
+
+        slug = a_data.get("url", "").strip()
+        if not slug:
+            slug = a_file.replace("-feed.yaml", "").replace(".yaml", "")
+
+        pwd = a_data.get("password", "").strip()
+        a_title = a_data.get("title", slug).strip()
+        a_desc = a_data.get("description", "").strip()
+
+        print(f"\n📂 Processing Album: {a_title} (URL slug: /{slug})...")
+
+        if not pwd:
+            print(f"⚠️ No password specified for {slug}. Storing in PLAINTEXT mode.")
+            salt = None
+            key = None
+        else:
+            print(f"🔒 Password found for /{slug}. Deriving 256-bit AES key...")
+            salt = os.urandom(16)
+            key = derive_key(pwd, salt)
+
+        raw_feed = a_data.get("feed", [])
+        processed_feed = []
+        photo_count = 0
+
+        for item in raw_feed:
+            item_type = item.get("type")
+            if item_type in ["heading", "narrative"]:
+                processed_feed.append({
+                    "type": item_type,
+                    "text": item.get("text", "").strip(),
+                    "subtitle": item.get("subtitle", "").strip()
+                })
+            elif item_type == "photo":
+                photo_count += 1
+                total_photos += 1
+                photo_id = f"{slug}_photo_{photo_count:03d}"
+                filename = item.get("file", "")
+                if process_photo_asset(filename, photo_id, key):
+                    processed_feed.append({
+                        "type": "photo",
+                        "id": photo_id,
+                        "caption": item.get("caption", "").strip(),
+                        "alt": item.get("alt", "").strip()
+                    })
+            else:
+                print(f"❓ Unknown item type: {item_type}")
+
+        album_manifest = {
+            "title": a_title,
+            "description": a_desc,
+            "feed": processed_feed
         }
-    else:
-        output_data = {
-            "encrypted": False,
-            "manifest": gallery_manifest
-        }
+
+        if key:
+            encrypted_manifest = encrypt_payload(key, json.dumps(album_manifest, ensure_ascii=False).encode("utf-8"))
+            albums_map[slug] = {
+                "encrypted": True,
+                "salt": base64.b64encode(salt).decode("utf-8"),
+                "iv": encrypted_manifest["iv"],
+                "ciphertext": encrypted_manifest["ciphertext"]
+            }
+        else:
+            albums_map[slug] = {
+                "encrypted": False,
+                "manifest": album_manifest
+            }
+
+        if root_index_html and slug:
+            slug_dir = os.path.join(SCRIPT_DIR, slug)
+            os.makedirs(slug_dir, exist_ok=True)
+            sub_index_path = os.path.join(slug_dir, "index.html")
+            
+            injected_head = f'<head>\n  <base href="../">\n  <script>window.TARGET_ALBUM_SLUG = "{slug}";</script>'
+            sub_html = root_index_html.replace("<head>", injected_head, 1)
+            with open(sub_index_path, "w", encoding="utf-8") as sf:
+                sf.write(sub_html)
+
+    output_data = {
+        "showcase": showcase_meta,
+        "albums": albums_map
+    }
 
     with open(DATA_JS_FILE, "w", encoding="utf-8") as df:
         df.write("// Auto-generated by build.py — do not edit manually\n")
@@ -197,7 +242,7 @@ def main():
         json.dump(output_data, df, indent=2, ensure_ascii=False)
         df.write(";\n")
 
-    print(f"\n✅ Build complete! Processed {photo_count} photos and {len(processed_feed)} feed items.")
+    print(f"\n✅ Build complete! Processed {len(albums_map)} albums and {total_photos} photos.")
     print(f"📁 Encrypted assets written to {OUTPUT_DIR}/ and data.js.")
 
 

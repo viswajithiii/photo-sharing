@@ -1,0 +1,44 @@
+# ==============================================================================
+# INDIVIDUAL ALBUM CONFIGURATION TEMPLATE (e.g., tokyo-feed.yaml)
+# ==============================================================================
+# Each album in your gallery has its own dedicated URL routing slug, private
+# passphrase, title, and sequence of photos and narratives.
+#
+# ROUTING & SHARING:
+# - `url`: The URL routing slug (e.g., "tokyo-2026").
+#   Visitors access this album via `https://your-site.github.io/repo/tokyo-2026/`
+#   or `https://your-site.github.io/repo/#tokyo-2026`.
+# - `password`: The secret passphrase required to unlock THIS specific album.
+#
+# CRYPTOGRAPHIC ISOLATION GUARANTEE:
+# Each album derives its own unique 256-bit AES encryption key. Sharing the link
+# and password for Album A exposes zero information about Album B. Even if someone
+# downloads the scrambled photo files for Album B, they cannot decrypt them!
+# ==============================================================================
+
+url: "tokyo-spring-2026"
+password: "cherryblossom"
+title: "Tokyo Spring Adventures"
+description: "Exploring Shinjuku alleyways and ancient shrines"
+
+feed:
+  - type: heading
+    text: "Day 0 — Arrival & Checking In"
+    subtitle: "Landing at Haneda Airport and taking the Tokyo Monorail"
+
+  - type: narrative
+    text: "First Evening in Shinjuku"
+    subtitle: "Walking through the bustling alleyways of Omoide Yokocho."
+
+  - type: photo
+    file: "photo_001.jpg" # Raw image file placed inside the photos/ folder
+    caption: "Delicious bowl of Tonkotsu ramen at Ichiran."
+    alt: "Tonkotsu ramen bowl"
+
+  - type: heading
+    text: "Day 1 — Shibuya & Harajuku"
+
+  - type: photo
+    file: "photo_002.jpg"
+    caption: "Crossing the famous Shibuya Scramble."
+    alt: "Shibuya crossing view"

@@ -7,11 +7,11 @@ class PhotoGalleryApp {
     this.rawManifest = typeof GALLERY_DATA !== 'undefined' ? GALLERY_DATA : null;
     this.key = null;
     this.manifest = null;
-    this.blobCache = new Map(); // id_size -> blobURL
+    this.blobCache = new Map();
     this.currentIndex = 0;
-    this.lightboxItems = []; // clickable items in sequential order
+    this.lightboxItems = [];
+    this.targetSlug = null;
     
-    // Swipe state
     this.touchStartX = 0;
     this.touchEndX = 0;
 
@@ -28,6 +28,24 @@ class PhotoGalleryApp {
     return bytes.buffer;
   }
 
+  getTargetSlug() {
+    if (typeof window.TARGET_ALBUM_SLUG !== 'undefined' && window.TARGET_ALBUM_SLUG) {
+      return window.TARGET_ALBUM_SLUG;
+    }
+    const hash = window.location.hash.replace('#', '').trim();
+    if (hash) return hash;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('album')) return params.get('album');
+    if (params.get('a')) return params.get('a');
+    
+    const parts = window.location.pathname.split('/').filter(Boolean);
+    const last = parts[parts.length - 1];
+    if (last && last !== 'index.html' && last !== 'photo-sharing') {
+      return last;
+    }
+    return null;
+  }
+
   async init() {
     this.bindEvents();
 
@@ -36,36 +54,67 @@ class PhotoGalleryApp {
       return;
     }
 
-    if (!this.rawManifest.encrypted) {
-      // Plaintext mode
-      this.manifest = this.rawManifest.manifest;
-      document.getElementById('authOverlay').classList.add('hidden');
+    this.targetSlug = this.getTargetSlug();
+
+    const showcaseEl = document.getElementById('showcaseContainer');
+    const feedEl = document.getElementById('feedContainer');
+    const authEl = document.getElementById('authOverlay');
+    const lockBtn = document.getElementById('lockBtn');
+
+    if (!this.targetSlug || !this.rawManifest.albums || !this.rawManifest.albums[this.targetSlug]) {
+      if (showcaseEl) showcaseEl.style.display = 'block';
+      if (feedEl) feedEl.style.display = 'none';
+      if (authEl) authEl.classList.add('hidden');
+      if (lockBtn) lockBtn.style.display = 'none';
+      document.getElementById('galleryTitle').textContent = (this.rawManifest.showcase && this.rawManifest.showcase.title) || "Antigravity Vault";
+      document.getElementById('galleryDescription').textContent = (this.rawManifest.showcase && this.rawManifest.showcase.description) || "Zero-Knowledge Storage";
+      return;
+    }
+
+    if (showcaseEl) showcaseEl.style.display = 'none';
+    if (lockBtn) lockBtn.style.display = 'inline-flex';
+
+    const albumBundle = this.rawManifest.albums[this.targetSlug];
+    if (!albumBundle.encrypted) {
+      this.manifest = albumBundle.manifest;
+      if (authEl) authEl.classList.add('hidden');
       this.renderFeed();
       return;
     }
 
-    // Try auto-unlocking from sessionStorage
-    const savedPwd = sessionStorage.getItem('gallery_pwd');
+    const savedPwd = sessionStorage.getItem('gallery_pwd_' + this.targetSlug);
     if (savedPwd) {
       const success = await this.unlock(savedPwd, true);
       if (success) return;
     }
+    
+    if (authEl) authEl.classList.remove('hidden');
   }
 
   bindEvents() {
     const authForm = document.getElementById('authForm');
-    authForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const pwd = document.getElementById('passwordInput').value;
-      await this.unlock(pwd, false);
-    });
+    if (authForm) {
+      authForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const pwd = document.getElementById('passwordInput').value;
+        await this.unlock(pwd, false);
+      });
+    }
 
-    document.getElementById('lockBtn').addEventListener('click', () => {
-      sessionStorage.removeItem('gallery_pwd');
+    const lockBtn = document.getElementById('lockBtn');
+    if (lockBtn) {
+      lockBtn.addEventListener('click', () => {
+        if (this.targetSlug) {
+          sessionStorage.removeItem('gallery_pwd_' + this.targetSlug);
+        }
+        window.location.reload();
+      });
+    }
+
+    window.addEventListener('hashchange', () => {
       window.location.reload();
     });
 
-    // Lightbox events
     document.getElementById('lightboxClose').addEventListener('click', () => this.closeLightbox());
     document.getElementById('lightboxPrev').addEventListener('click', () => this.navigateLightbox(-1));
     document.getElementById('lightboxNext').addEventListener('click', () => this.navigateLightbox(1));
@@ -78,16 +127,17 @@ class PhotoGalleryApp {
       if (e.key === 'ArrowRight') this.navigateLightbox(1);
     });
 
-    // Touch swipe for Lightbox
     const stage = document.getElementById('lightboxStage');
-    stage.addEventListener('touchstart', (e) => {
-      this.touchStartX = e.changedTouches[0].screenX;
-    }, { passive: true });
+    if (stage) {
+      stage.addEventListener('touchstart', (e) => {
+        this.touchStartX = e.changedTouches[0].screenX;
+      }, { passive: true });
 
-    stage.addEventListener('touchend', (e) => {
-      this.touchEndX = e.changedTouches[0].screenX;
-      this.handleSwipe();
-    }, { passive: true });
+      stage.addEventListener('touchend', (e) => {
+        this.touchEndX = e.changedTouches[0].screenX;
+        this.handleSwipe();
+      }, { passive: true });
+    }
   }
 
   handleSwipe() {
@@ -95,21 +145,24 @@ class PhotoGalleryApp {
     const diff = this.touchStartX - this.touchEndX;
     if (Math.abs(diff) > threshold) {
       if (diff > 0) {
-        this.navigateLightbox(1); // Swipe left -> next
+        this.navigateLightbox(1);
       } else {
-        this.navigateLightbox(-1); // Swipe right -> prev
+        this.navigateLightbox(-1);
       }
     }
   }
 
   async unlock(password, isSilent = false) {
     const errEl = document.getElementById('authError');
-    errEl.style.display = 'none';
+    if (errEl) errEl.style.display = 'none';
+
+    if (!this.targetSlug || !this.rawManifest.albums[this.targetSlug]) return false;
+    const albumBundle = this.rawManifest.albums[this.targetSlug];
 
     try {
-      const salt = this.base64ToArrayBuffer(this.rawManifest.salt);
-      const iv = this.base64ToArrayBuffer(this.rawManifest.iv);
-      const ciphertext = this.base64ToArrayBuffer(this.rawManifest.ciphertext);
+      const salt = this.base64ToArrayBuffer(albumBundle.salt);
+      const iv = this.base64ToArrayBuffer(albumBundle.iv);
+      const ciphertext = this.base64ToArrayBuffer(albumBundle.ciphertext);
 
       const enc = new TextEncoder();
       const keyMaterial = await window.crypto.subtle.importKey(
@@ -142,17 +195,20 @@ class PhotoGalleryApp {
       const dec = new TextDecoder();
       this.manifest = JSON.parse(dec.decode(decryptedBuffer));
 
-      sessionStorage.setItem('gallery_pwd', password);
-      document.getElementById('authOverlay').classList.add('hidden');
+      sessionStorage.setItem('gallery_pwd_' + this.targetSlug, password);
+      const authEl = document.getElementById('authOverlay');
+      if (authEl) authEl.classList.add('hidden');
       this.renderFeed();
       return true;
 
     } catch (e) {
       if (!isSilent) {
-        errEl.style.display = 'block';
+        if (errEl) errEl.style.display = 'block';
         const input = document.getElementById('passwordInput');
-        input.value = '';
-        input.focus();
+        if (input) {
+          input.value = '';
+          input.focus();
+        }
       }
       return false;
     }
@@ -177,6 +233,7 @@ class PhotoGalleryApp {
   }
 
   async getAssetBlobUrl(id, tier) {
+    if (!id) return null;
     const cacheKey = `${id}_${tier}`;
     if (this.blobCache.has(cacheKey)) {
       return this.blobCache.get(cacheKey);
@@ -197,14 +254,18 @@ class PhotoGalleryApp {
   }
 
   renderFeed() {
-    document.getElementById('galleryTitle').textContent = this.manifest.title;
-    document.getElementById('galleryDescription').textContent = this.manifest.description || 'Secure Collection';
+    document.getElementById('galleryTitle').textContent = this.manifest.title || "Private Collection";
+    document.getElementById('galleryDescription').textContent = this.manifest.description || "";
 
     const container = document.getElementById('feedContainer');
-    container.innerHTML = '';
+    if (container) {
+      container.style.display = 'grid';
+      container.innerHTML = '';
+    }
     this.lightboxItems = [];
 
-    this.manifest.feed.forEach((item, idx) => {
+    const feedList = this.manifest.feed || [];
+    feedList.forEach((item, idx) => {
       const lbIdx = this.lightboxItems.length;
       this.lightboxItems.push(item);
 
@@ -239,14 +300,12 @@ class PhotoGalleryApp {
       }
     });
 
-    // Add synthetic end card for full-screen mode
     this.lightboxItems.push({
       type: 'end',
       text: "End of Collection",
       subtitle: "Swipe right or press arrow key once more to exit full-screen view"
     });
 
-    // Setup background lazy loading for thumbnails
     this.setupThumbLoading();
   }
 
@@ -262,7 +321,8 @@ class PhotoGalleryApp {
       });
     }, { rootMargin: '300px 0px' });
 
-    this.manifest.feed.forEach(item => {
+    const feedList = this.manifest.feed || [];
+    feedList.forEach(item => {
       if (item.type === 'photo') {
         const img = document.getElementById(`thumb_${item.id}`);
         if (img) {

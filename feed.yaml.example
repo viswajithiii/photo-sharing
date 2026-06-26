@@ -1,0 +1,23 @@
+# ==============================================================================
+# MASTER GALLERY INDEX CONFIGURATION (feed.yaml)
+# ==============================================================================
+# Welcome! This master configuration file tells the build script (`build.py`)
+# which individual album files to process, encrypt, and bundle.
+#
+# HOW TO USE:
+# 1. Create a separate YAML file for each album (e.g., `tokyo-feed.yaml`).
+# 2. Add the filename to the `albums` list below.
+# 3. Run `uv run build.py` to compile everything into secure web assets!
+#
+# SECURITY NOTE:
+# Your `.gitignore` automatically blocks `feed.yaml` and `*-feed.yaml` from being
+# committed to Git. Only scrambled AES-GCM ciphertext ever goes to GitHub!
+# ==============================================================================
+
+title: "Antigravity Encrypted Vault"
+description: "Zero-knowledge client-side photo sharing"
+
+# List of individual album configuration files to build
+albums:
+  - file: "tokyo-feed.yaml"
+  - file: "kyoto-feed.yaml"
