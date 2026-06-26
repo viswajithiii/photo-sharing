@@ -61,6 +61,7 @@ class PhotoGalleryApp {
     const headerEl = document.querySelector('.app-header');
 
     if (!this.targetSlug || !this.rawManifest.albums || !this.rawManifest.albums[this.targetSlug]) {
+      document.title = "Private Photo Sharing";
       if (showcaseEl) showcaseEl.style.display = 'block';
       if (feedEl) feedEl.style.display = 'none';
       if (authEl) authEl.classList.add('hidden');
@@ -295,7 +296,9 @@ class PhotoGalleryApp {
   }
 
   renderFeed() {
-    document.getElementById('galleryTitle').textContent = this.manifest.title || "Private Collection";
+    const titleText = this.manifest.title || "Private Photo Sharing";
+    document.title = titleText;
+    document.getElementById('galleryTitle').textContent = titleText;
     document.getElementById('galleryDescription').textContent = this.manifest.description || "";
 
     const container = document.getElementById('feedContainer');
