@@ -113,6 +113,14 @@ class PhotoGalleryApp {
       window.location.reload();
     });
 
+    const expBack = document.getElementById('photoExpandBack');
+    if (expBack) {
+      expBack.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.togglePhotoExpansion(false);
+      });
+    }
+
     document.getElementById('lightboxClose').addEventListener('click', () => this.closeLightbox());
     document.getElementById('lightboxPrev').addEventListener('click', () => this.navigateLightbox(-1));
     document.getElementById('lightboxNext').addEventListener('click', () => this.navigateLightbox(1));
@@ -140,12 +148,7 @@ class PhotoGalleryApp {
       stage.addEventListener('click', (e) => {
         if (e.target.closest('button, a')) return;
         if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
-        const clickX = e.clientX;
-        if (clickX < window.innerWidth * 0.35) {
-          this.navigateLightbox(-1);
-        } else {
-          this.navigateLightbox(1);
-        }
+        this.handleStageTap(e.clientX);
       });
     }
   }
@@ -158,11 +161,35 @@ class PhotoGalleryApp {
       else this.navigateLightbox(-1);
     } else {
       const tapX = e.changedTouches[0].clientX;
-      if (tapX < window.innerWidth * 0.35) {
-        this.navigateLightbox(-1);
-      } else {
-        this.navigateLightbox(1);
+      this.handleStageTap(tapX);
+    }
+  }
+
+  handleStageTap(tapX) {
+    const screenWidth = window.innerWidth;
+    if (tapX < screenWidth * 0.30) {
+      this.navigateLightbox(-1);
+    } else if (tapX > screenWidth * 0.70) {
+      this.navigateLightbox(1);
+    } else {
+      const currentItem = this.lightboxItems[this.currentIndex];
+      if (currentItem && currentItem.type === 'photo') {
+        this.togglePhotoExpansion(!this.isPhotoExpanded);
       }
+    }
+  }
+
+  togglePhotoExpansion(expand) {
+    this.isPhotoExpanded = expand;
+    const lb = document.getElementById('lightbox');
+    const backBtn = document.getElementById('photoExpandBack');
+    if (!lb) return;
+    if (expand) {
+      lb.classList.add('photo-expanded');
+      if (backBtn) backBtn.style.display = 'inline-flex';
+    } else {
+      lb.classList.remove('photo-expanded');
+      if (backBtn) backBtn.style.display = 'none';
     }
   }
 
@@ -362,6 +389,7 @@ class PhotoGalleryApp {
 
   async openLightbox(index) {
     this.currentIndex = index;
+    this.togglePhotoExpansion(false);
     const lb = document.getElementById('lightbox');
     lb.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -369,12 +397,14 @@ class PhotoGalleryApp {
   }
 
   closeLightbox() {
+    this.togglePhotoExpansion(false);
     const lb = document.getElementById('lightbox');
     lb.classList.remove('active');
     document.body.style.overflow = '';
   }
 
   async navigateLightbox(direction) {
+    this.togglePhotoExpansion(false);
     const total = this.lightboxItems.length;
     if (total <= 1) return;
 
