@@ -60,18 +60,18 @@ class PhotoGalleryApp {
     const feedEl = document.getElementById('feedContainer');
     const authEl = document.getElementById('authOverlay');
     const lockBtn = document.getElementById('lockBtn');
+    const headerEl = document.querySelector('.app-header');
 
     if (!this.targetSlug || !this.rawManifest.albums || !this.rawManifest.albums[this.targetSlug]) {
       if (showcaseEl) showcaseEl.style.display = 'block';
       if (feedEl) feedEl.style.display = 'none';
       if (authEl) authEl.classList.add('hidden');
-      if (lockBtn) lockBtn.style.display = 'none';
-      document.getElementById('galleryTitle').textContent = (this.rawManifest.showcase && this.rawManifest.showcase.title) || "Antigravity Vault";
-      document.getElementById('galleryDescription').textContent = (this.rawManifest.showcase && this.rawManifest.showcase.description) || "Zero-Knowledge Storage";
+      if (headerEl) headerEl.style.display = 'none';
       return;
     }
 
     if (showcaseEl) showcaseEl.style.display = 'none';
+    if (headerEl) headerEl.style.display = 'block';
     if (lockBtn) lockBtn.style.display = 'inline-flex';
 
     const albumBundle = this.rawManifest.albums[this.targetSlug];
@@ -130,24 +130,40 @@ class PhotoGalleryApp {
     const stage = document.getElementById('lightboxStage');
     if (stage) {
       stage.addEventListener('touchstart', (e) => {
-        this.touchStartX = e.changedTouches[0].screenX;
+        this.touchStartX = e.changedTouches[0].clientX;
       }, { passive: true });
 
       stage.addEventListener('touchend', (e) => {
-        this.touchEndX = e.changedTouches[0].screenX;
-        this.handleSwipe();
+        if (e.target.closest('button, a')) return;
+        this.touchEndX = e.changedTouches[0].clientX;
+        this.handleTouchOrSwipe(e);
       }, { passive: true });
+
+      stage.addEventListener('click', (e) => {
+        if (e.target.closest('button, a')) return;
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) return;
+        const clickX = e.clientX;
+        if (clickX < window.innerWidth * 0.35) {
+          this.navigateLightbox(-1);
+        } else {
+          this.navigateLightbox(1);
+        }
+      });
     }
   }
 
-  handleSwipe() {
-    const threshold = 50;
+  handleTouchOrSwipe(e) {
+    const threshold = 40;
     const diff = this.touchStartX - this.touchEndX;
     if (Math.abs(diff) > threshold) {
-      if (diff > 0) {
-        this.navigateLightbox(1);
-      } else {
+      if (diff > 0) this.navigateLightbox(1);
+      else this.navigateLightbox(-1);
+    } else {
+      const tapX = e.changedTouches[0].clientX;
+      if (tapX < window.innerWidth * 0.35) {
         this.navigateLightbox(-1);
+      } else {
+        this.navigateLightbox(1);
       }
     }
   }

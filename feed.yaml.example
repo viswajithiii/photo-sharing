@@ -14,9 +14,6 @@
 # committed to Git. Only scrambled AES-GCM ciphertext ever goes to GitHub!
 # ==============================================================================
 
-title: "Antigravity Encrypted Vault"
-description: "Zero-knowledge client-side photo sharing"
-
 # List of individual album configuration files to build
 albums:
   - file: "tokyo-feed.yaml"

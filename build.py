@@ -131,8 +131,8 @@ def main():
         feed_config = yaml.safe_load(yf) or {}
 
     showcase_meta = {
-        "title": feed_config.get("title", "Antigravity Secure Vault"),
-        "description": feed_config.get("description", "Zero-Knowledge Encrypted Sharing")
+        "title": "Antigravity Secure Vault",
+        "description": "Zero-Knowledge Encrypted Sharing"
     }
 
     albums_map = {}
