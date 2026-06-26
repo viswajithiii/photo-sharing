@@ -20,6 +20,7 @@ import json
 import yaml
 import glob
 import base64
+import hashlib
 import shutil
 from PIL import Image
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
@@ -158,19 +159,23 @@ def main():
         slug = a_data.get("url", "").strip()
         if not slug:
             slug = a_file.replace("-feed.yaml", "").replace(".yaml", "")
+        slug = slug.lstrip("/")
+
+        slug_hash = hashlib.sha256(slug.encode("utf-8")).hexdigest()
+        short_id = slug_hash[:16]
 
         pwd = a_data.get("password", "").strip()
         a_title = a_data.get("title", slug).strip()
         a_desc = a_data.get("description", "").strip()
 
-        print(f"\n📂 Processing Album: {a_title} (URL slug: /{slug})...")
+        print(f"\n📂 Processing Album: {a_title} (URL hash: #{slug})...")
 
         if not pwd:
             print(f"⚠️ No password specified for {slug}. Storing in PLAINTEXT mode.")
             salt = None
             key = None
         else:
-            print(f"🔒 Password found for /{slug}. Deriving 256-bit AES key...")
+            print(f"🔒 Password found for #{slug}. Deriving 256-bit AES key...")
             salt = os.urandom(16)
             key = derive_key(pwd, salt)
 
@@ -189,7 +194,7 @@ def main():
             elif item_type == "photo":
                 photo_count += 1
                 total_photos += 1
-                photo_id = f"{slug}_photo_{photo_count:03d}"
+                photo_id = f"{short_id}_photo_{photo_count:03d}"
                 filename = item.get("file", "")
                 if process_photo_asset(filename, photo_id, key):
                     processed_feed.append({
@@ -209,27 +214,17 @@ def main():
 
         if key:
             encrypted_manifest = encrypt_payload(key, json.dumps(album_manifest, ensure_ascii=False).encode("utf-8"))
-            albums_map[slug] = {
+            albums_map[slug_hash] = {
                 "encrypted": True,
                 "salt": base64.b64encode(salt).decode("utf-8"),
                 "iv": encrypted_manifest["iv"],
                 "ciphertext": encrypted_manifest["ciphertext"]
             }
         else:
-            albums_map[slug] = {
+            albums_map[slug_hash] = {
                 "encrypted": False,
                 "manifest": album_manifest
             }
-
-        if root_index_html and slug:
-            slug_dir = os.path.join(SCRIPT_DIR, slug)
-            os.makedirs(slug_dir, exist_ok=True)
-            sub_index_path = os.path.join(slug_dir, "index.html")
-            
-            injected_head = f'<head>\n  <base href="../">\n  <script>window.TARGET_ALBUM_SLUG = "{slug}";</script>'
-            sub_html = root_index_html.replace("<head>", injected_head, 1)
-            with open(sub_index_path, "w", encoding="utf-8") as sf:
-                sf.write(sub_html)
 
     output_data = {
         "showcase": showcase_meta,

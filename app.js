@@ -28,21 +28,18 @@ class PhotoGalleryApp {
     return bytes.buffer;
   }
 
+  async hashSlug(str) {
+    const clean = str.replace(/^\/+|\/+$/g, '').trim();
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(clean));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
   getTargetSlug() {
-    if (typeof window.TARGET_ALBUM_SLUG !== 'undefined' && window.TARGET_ALBUM_SLUG) {
-      return window.TARGET_ALBUM_SLUG;
-    }
     const hash = window.location.hash.replace('#', '').trim();
     if (hash) return hash;
     const params = new URLSearchParams(window.location.search);
     if (params.get('album')) return params.get('album');
     if (params.get('a')) return params.get('a');
-    
-    const parts = window.location.pathname.split('/').filter(Boolean);
-    const last = parts[parts.length - 1];
-    if (last && last !== 'index.html' && last !== 'photo-sharing') {
-      return last;
-    }
     return null;
   }
 
@@ -54,7 +51,8 @@ class PhotoGalleryApp {
       return;
     }
 
-    this.targetSlug = this.getTargetSlug();
+    this.rawTargetSlug = this.getTargetSlug();
+    this.targetSlug = this.rawTargetSlug ? await this.hashSlug(this.rawTargetSlug) : null;
 
     const showcaseEl = document.getElementById('showcaseContainer');
     const feedEl = document.getElementById('feedContainer');
